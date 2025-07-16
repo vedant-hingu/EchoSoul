@@ -1,0 +1,65 @@
+/* Global Styles for Mental Health Companion */
+:root {
+  --primary: #6a82fb;
+  --secondary: #fc5c7d;
+  --background: #f5f7fa;
+  --card-bg: #ffffffcc;
+  --accent: #43e97b;
+  --text: #22223b;
+  --soft: #a8edea;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  background: linear-gradient(120deg, var(--primary) 0%, var(--soft) 100%);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+a:hover {
+  color: var(--secondary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-weight: 700;
+  margin: 0 0 0.5em 0;
+}
+
+button {
+  font-family: inherit;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 0.7em 2em;
+  font-size: 1.1em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #0001;
+  transition: background 0.3s, transform 0.2s;
+}
+button:hover {
+  background: var(--secondary);
+  transform: translateY(-2px) scale(1.04);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: var(--soft);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 8px;
+}

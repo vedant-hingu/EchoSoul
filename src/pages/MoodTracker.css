@@ -1,0 +1,117 @@
+.mood-tracker {
+  max-width: 600px;
+  margin: 2em auto;
+  background: var(--card-bg);
+  border-radius: 24px;
+  box-shadow: 0 2px 16px #0002;
+  padding: 2em 1.5em 2.5em 1.5em;
+  text-align: center;
+  animation: fadeIn 1s;
+}
+
+.mood-tracker h2 {
+  margin-bottom: 1.5em;
+}
+
+.mood-cards {
+  display: flex;
+  justify-content: center;
+  gap: 1.5em;
+  margin-bottom: 1.5em;
+  flex-wrap: wrap;
+}
+
+.mood-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px #0001;
+  padding: 1.2em 1.5em;
+  cursor: pointer;
+  transition: transform 0.25s, box-shadow 0.25s, background 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 90px;
+  border: 2px solid transparent;
+  position: relative;
+  opacity: 0;
+  animation: cardPop 0.7s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+
+.mood-card:nth-child(1) { animation-delay: 0.1s; }
+.mood-card:nth-child(2) { animation-delay: 0.2s; }
+.mood-card:nth-child(3) { animation-delay: 0.3s; }
+.mood-card:nth-child(4) { animation-delay: 0.4s; }
+.mood-card:nth-child(5) { animation-delay: 0.5s; }
+
+@keyframes cardPop {
+  0% { opacity: 0; transform: scale(0.8) translateY(30px); }
+  80% { opacity: 1; transform: scale(1.05) translateY(-5px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.mood-card:hover {
+  transform: scale(1.08) translateY(-6px);
+  box-shadow: 0 4px 16px #0002;
+  background: var(--soft);
+}
+
+.mood-card.selected {
+  border: 2px solid var(--mood-color, var(--primary));
+  background: linear-gradient(120deg, var(--mood-color, var(--primary)), #fff 80%);
+  box-shadow: 0 6px 24px #0002;
+  transform: scale(1.12) translateY(-8px);
+}
+
+.emoji {
+  font-size: 2.2em;
+  margin-bottom: 0.3em;
+}
+
+.label {
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+.mood-selected {
+  margin-top: 1.5em;
+  font-size: 1.15em;
+  color: var(--primary);
+  opacity: 0;
+  animation: fadeIn 0.7s 0.2s forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+/* Animated Okay Button */
+.okay-btn {
+  margin-top: 1.2em;
+  padding: 0.7em 2.2em;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(90deg, #ff4b2b 0%, #1e90ff 100%);
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 2px 12px #ff4b2b44;
+  cursor: pointer;
+  outline: none;
+  opacity: 0;
+  transform: scale(0.8) translateY(20px);
+  animation: okayPop 0.7s 0.4s cubic-bezier(0.4,0,0.2,1) forwards;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.okay-btn:hover {
+  background: linear-gradient(90deg, #1e90ff 0%, #ff4b2b 100%);
+  transform: scale(1.08) translateY(-2px);
+  color: #ff4b2b;
+}
+
+@keyframes okayPop {
+  0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+  80% { opacity: 1; transform: scale(1.05) translateY(-3px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+} 

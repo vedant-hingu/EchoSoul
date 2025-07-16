@@ -1,0 +1,16 @@
+.footer {
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 -2px 12px #0001;
+  padding: 1.5em 0;
+  display: flex;
+  justify-content: center;
+}
+
+.footer-content {
+  max-width: 1200px;
+  width: 100%;
+  text-align: center;
+  color: #888;
+  font-size: 1em;
+} 
