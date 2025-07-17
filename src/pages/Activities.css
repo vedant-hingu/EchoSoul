@@ -906,3 +906,27 @@
     gap: 0.3em;
   }
 } 
+
+.lungs-animation-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.2em;
+  min-height: 130px;
+}
+
+.lungs-animation-wrapper svg {
+  filter: drop-shadow(0 4px 16px #0288d133);
+} 
+
+.lungs-emoji-animation-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.2em;
+  min-height: 130px;
+}
+
+.lungs-emoji {
+  filter: drop-shadow(0 4px 16px #0288d133);
+} 

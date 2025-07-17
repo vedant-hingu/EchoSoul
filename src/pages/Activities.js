@@ -30,6 +30,50 @@ const PHASES = [
   { label: 'Breathe Out', duration: 8, className: 'breathe-out' },
 ];
 
+// Mood color mapping from MoodTracker
+const MOOD_COLORS = [
+  { emoji: '😊', color: '#43e97b' }, // Happy
+  { emoji: '😌', color: '#6a82fb' }, // Calm
+  { emoji: '😢', color: '#fc5c7d' }, // Sad
+  { emoji: '😰', color: '#f7971e' }, // Anxious
+  { emoji: '😡', color: '#fd5c63' }, // Angry
+];
+
+const MOOD_GRADIENTS = [
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', // Happy
+  'linear-gradient(135deg, #6a82fb 0%, #fc5c7d 100%)', // Calm
+  'linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%)', // Sad
+  'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)', // Anxious
+  'linear-gradient(135deg, #fd5c63 0%, #f7971e 100%)', // Angry
+];
+
+const LungsAnimation = ({ phase, breathing }) => {
+  // phase: 'breathe-in', 'breathe-hold', 'breathe-out'
+  let scale = 1;
+  if (breathing) {
+    if (phase === 'breathe-in') scale = 1.18;
+    else if (phase === 'breathe-hold') scale = 1.08;
+    else if (phase === 'breathe-out') scale = 0.92;
+  }
+  return (
+    <div className="lungs-emoji-animation-wrapper">
+      <span
+        role="img"
+        aria-label="lungs"
+        className="lungs-emoji"
+        style={{
+          display: 'inline-block',
+          fontSize: '5.5em',
+          transform: `scale(${scale})`,
+          transition: 'transform 1.5s cubic-bezier(0.4,0,0.2,1)'
+        }}
+      >
+        🫁
+      </span>
+    </div>
+  );
+};
+
 const BreathingTimer = ({ cycles = 4 }) => {
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState(PHASES[0].duration);
@@ -78,6 +122,7 @@ const BreathingTimer = ({ cycles = 4 }) => {
 
   return (
     <div className="breathing-timer">
+      <LungsAnimation phase={PHASES[phaseIdx].className} breathing={running} />
       <h3>4-7-8 Breathing Exercise</h3>
       <div className="breathing-instructions">
         {running && (

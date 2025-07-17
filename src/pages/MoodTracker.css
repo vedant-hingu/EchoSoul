@@ -27,7 +27,7 @@
   box-shadow: 0 2px 8px #0001;
   padding: 1.2em 1.5em;
   cursor: pointer;
-  transition: transform 0.25s, box-shadow 0.25s, background 0.3s;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.6s cubic-bezier(0.22, 1, 0.36, 1), background 1.8s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -50,15 +50,16 @@
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.mood-card:hover {
-  transform: scale(1.08) translateY(-6px);
-  box-shadow: 0 4px 16px #0002;
-  background: var(--soft);
+.mood-card:hover, .mood-card.bounce {
+  transform: scale(1.15) translateY(-12px);
+  box-shadow: 0 8px 32px #0003;
+  background: linear-gradient(120deg, var(--mood-color, var(--primary)), var(--mood-color, var(--primary)) 100%);
+  /* No animation property here to prevent disappearing */
 }
 
 .mood-card.selected {
   border: 2px solid var(--mood-color, var(--primary));
-  background: linear-gradient(120deg, var(--mood-color, var(--primary)), #fff 80%);
+  background: linear-gradient(120deg, var(--mood-color, var(--primary)), var(--mood-color, var(--primary)) 100%);
   box-shadow: 0 6px 24px #0002;
   transform: scale(1.12) translateY(-8px);
 }

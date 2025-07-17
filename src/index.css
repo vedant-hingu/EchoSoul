@@ -9,6 +9,10 @@
   --soft: #a8edea;
 }
 
+html, body {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -53,13 +57,4 @@ button {
 button:hover {
   background: var(--secondary);
   transform: translateY(-2px) scale(1.04);
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  background: var(--soft);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 8px;
 }
