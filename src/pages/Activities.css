@@ -17,7 +17,20 @@
   display: flex;
   gap: 2em;
   justify-content: center;
+  align-items: flex-start;
   flex-wrap: wrap;
+  max-width: 900px;
+  margin: 0 auto 2em auto;
+}
+
+@media (max-width: 768px) {
+  .activity-cards {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2em;
+    max-width: 100%;
+    margin: 0 auto 1.5em auto;
+  }
 }
 
 .activity-card {
@@ -25,15 +38,33 @@
   border-radius: 18px;
   box-shadow: 0 2px 8px #0001;
   padding: 1.5em 2em;
-  min-width: 180px;
+  min-width: 200px;
   max-width: 220px;
+  min-height: 260px;
+  max-height: 260px;
+  width: 220px;
+  height: 260px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   transition: transform 0.25s, box-shadow 0.25s, background 0.3s;
   cursor: pointer;
   opacity: 0;
   animation: popIn 0.8s cubic-bezier(0.4,0,0.2,1) forwards;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .activity-card {
+    min-width: 90vw;
+    max-width: 95vw;
+    width: 100%;
+    min-height: 180px;
+    max-height: none;
+    height: auto;
+    padding: 1.2em 1em;
+  }
 }
 
 @keyframes popIn {
@@ -929,4 +960,19 @@
 
 .lungs-emoji {
   filter: drop-shadow(0 4px 16px #0288d133);
+} 
+
+.breathing-section,
+.journaling-section-container,
+.mindful-walking-section-container,
+.peaceful-music-section-container {
+  transition: opacity 0.3s, transform 0.3s;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.activity-section-closing {
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
 } 

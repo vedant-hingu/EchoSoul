@@ -63,4 +63,21 @@
 
 .navbar-links a.active {
   color: var(--primary);
+}
+
+.navbar-pop {
+  transition: transform 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.4s cubic-bezier(0.4,0,0.2,1);
+  will-change: transform, opacity;
+}
+
+.navbar-pop:not(.visible) {
+  transform: translateY(-100%) scale(0.98);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.navbar-pop.visible {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
 } 

@@ -61,22 +61,37 @@ const SignInModal = ({ isOpen, onClose, onSignIn }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      if (onSignIn) {
-        if (mode === 'login') {
-          onSignIn({ email: formData.email });
-        } else {
-          onSignIn({
+      let endpoint = mode === 'login' ? '/api/login/' : '/api/signup/';
+      let payload = mode === 'login'
+        ? { username: formData.username, password: formData.password }
+        : {
             username: formData.username,
-            phone: formData.phone,
-            address: formData.address,
             email: formData.email,
-          });
+            password: formData.password,
+            phone: formData.phone,
+            address: formData.address
+          };
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (onSignIn) {
+            onSignIn(payload);
+          }
+          onClose();
+        } else {
+          setErrors({ api: data.error || 'An error occurred' });
         }
+      } catch (err) {
+        setErrors({ api: 'Network error' });
       }
-      onClose();
     }
   };
 

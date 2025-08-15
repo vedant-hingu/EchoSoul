@@ -530,10 +530,15 @@ const Activities = () => {
   const journalRef = useRef(null);
   const walkingRef = useRef(null);
   const musicRef = useRef(null); // Added musicRef
+  const cardsRef = useRef(null); // Ref for main activity cards
   const [showTimer, setShowTimer] = useState(false);
+  const [closingTimer, setClosingTimer] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
+  const [closingJournal, setClosingJournal] = useState(false);
   const [showWalking, setShowWalking] = useState(false);
-  const [showMusic, setShowMusic] = useState(false); // Added showMusic state
+  const [closingWalking, setClosingWalking] = useState(false);
+  const [showMusic, setShowMusic] = useState(false);
+  const [closingMusic, setClosingMusic] = useState(false);
 
   const handleCardClick = (title) => {
     if (title === 'Breathing Exercise') {
@@ -571,10 +576,44 @@ const Activities = () => {
     }
   };
 
+  const handleCloseTimer = () => {
+    setClosingTimer(true);
+    setTimeout(() => {
+      setShowTimer(false);
+      setClosingTimer(false);
+      if (cardsRef.current) cardsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+  };
+  const handleCloseJournal = () => {
+    setClosingJournal(true);
+    setTimeout(() => {
+      setShowJournal(false);
+      setClosingJournal(false);
+      if (cardsRef.current) cardsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+  };
+  const handleCloseWalking = () => {
+    setClosingWalking(true);
+    setTimeout(() => {
+      setShowWalking(false);
+      setClosingWalking(false);
+      if (cardsRef.current) cardsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+  };
+  const handleCloseMusic = () => {
+    setClosingMusic(true);
+    setTimeout(() => {
+      setShowMusic(false);
+      setClosingMusic(false);
+      if (cardsRef.current) cardsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+  };
+
   return (
     <div className="activities">
       <h2>Guided Activities</h2>
       <div className="activity-cards">
+        <div ref={cardsRef}></div>
         {activities.map((a, i) => (
           <div
             className="activity-card pop-in"
@@ -592,22 +631,42 @@ const Activities = () => {
         ))}
       </div>
       {/* Breathing Timer Section */}
-      <section ref={timerRef} className="breathing-section" style={{ marginTop: '3em', minHeight: '100px' }}>
+      <section
+        ref={timerRef}
+        className={`breathing-section${closingTimer ? ' activity-section-closing' : ''}`}
+        style={{ position: 'relative', marginTop: '3em', minHeight: '100px', display: showTimer ? 'block' : 'none' }}
+      >
+        <button onClick={handleCloseTimer} className="activity-close-btn" style={{ position: 'absolute', top: '1em', right: '1em', width: '32px', height: '32px', borderRadius: '50%', fontSize: '1.1em', background: '#ef4444', color: '#fff', border: 'none', boxShadow: '0 1px 4px #ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'background 0.2s' }}>✖</button>
         <h2 style={{ textAlign: 'center', marginBottom: '1em' }}>Breathing Exercise</h2>
         {showTimer && <BreathingTimer cycles={4} />}
       </section>
       {/* Journaling Section */}
-      <section ref={journalRef} className="journaling-section-container" style={{ marginTop: '3em', minHeight: '100px' }}>
+      <section
+        ref={journalRef}
+        className={`journaling-section-container${closingJournal ? ' activity-section-closing' : ''}`}
+        style={{ position: 'relative', marginTop: '3em', minHeight: '100px', display: showJournal ? 'block' : 'none' }}
+      >
+        <button onClick={handleCloseJournal} className="activity-close-btn" style={{ position: 'absolute', top: '1em', right: '1em', width: '32px', height: '32px', borderRadius: '50%', fontSize: '1.1em', background: '#ef4444', color: '#fff', border: 'none', boxShadow: '0 1px 4px #ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'background 0.2s' }}>✖</button>
         <h2 style={{ textAlign: 'center', marginBottom: '1em' }}>Journaling</h2>
         {showJournal && <JournalingSection />}
       </section>
       {/* Mindful Walking Section */}
-      <section ref={walkingRef} className="mindful-walking-section-container" style={{ marginTop: '3em', minHeight: '100px' }}>
+      <section
+        ref={walkingRef}
+        className={`mindful-walking-section-container${closingWalking ? ' activity-section-closing' : ''}`}
+        style={{ position: 'relative', marginTop: '3em', minHeight: '100px', display: showWalking ? 'block' : 'none' }}
+      >
+        <button onClick={handleCloseWalking} className="activity-close-btn" style={{ position: 'absolute', top: '1em', right: '1em', width: '32px', height: '32px', borderRadius: '50%', fontSize: '1.1em', background: '#ef4444', color: '#fff', border: 'none', boxShadow: '0 1px 4px #ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'background 0.2s' }}>✖</button>
         <h2 style={{ textAlign: 'center', marginBottom: '1em' }}>Mindful Walking</h2>
         {showWalking && <MindfulWalkingSection />}
       </section>
       {/* Peaceful Music Section */}
-      <section ref={musicRef} className="peaceful-music-section-container" style={{ marginTop: '3em', minHeight: '100px' }}>
+      <section
+        ref={musicRef}
+        className={`peaceful-music-section-container${closingMusic ? ' activity-section-closing' : ''}`}
+        style={{ position: 'relative', marginTop: '3em', minHeight: '100px', display: showMusic ? 'block' : 'none' }}
+      >
+        <button onClick={handleCloseMusic} className="activity-close-btn" style={{ position: 'absolute', top: '1em', right: '1em', width: '32px', height: '32px', borderRadius: '50%', fontSize: '1.1em', background: '#ef4444', color: '#fff', border: 'none', boxShadow: '0 1px 4px #ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'background 0.2s' }}>✖</button>
         <h2 style={{ textAlign: 'center', marginBottom: '1em' }}>Peaceful Music</h2>
         {showMusic && <PeacefulMusicSection />}
       </section>
