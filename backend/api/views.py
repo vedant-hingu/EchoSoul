@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny
 
 from backend.mongo import MongoDB
 from .models import User
+from .utils import hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -61,31 +62,41 @@ class LoginView(APIView):
 
     def post(self, request):
         try:
-            data = json.loads(request.body)
+            data = request.data
             username = data.get('username')
             password = data.get('password')
             
+            logger.info(f"Login attempt with username: {username}")
+            
             if not username or not password:
+                logger.warning("Login failed: Username or password missing")
                 return Response(
                     {'error': 'Username and password are required'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            user_data = User.find_by_username(username)
+            user_model = User()
+            user_data = user_model.find_by_username(username)
+            logger.info(f"Find by username result: {user_data is not None}")
+            
+            # If username not found, try finding by email
             if not user_data:
+                user_data = user_model.find_by_email(username)
+                logger.info(f"Find by email result: {user_data is not None}")
+                
+            if not user_data:
+                logger.warning(f"User not found for login: {username}")
                 return Response(
                     {'error': 'Invalid credentials'}, 
                     status=status.HTTP_401_UNAUTHORIZED
                 )
             
-            # Create a temporary user instance to verify password
-            user = User(
-                username=user_data['username'],
-                email=user_data['email'],
-                password=user_data['password']  # This is the hashed password
-            )
+            # Verify password using our utility function
+            password_valid = verify_password(user_data['password_hash'], password)
+            logger.info(f"Password verification result: {password_valid}")
             
-            if user.verify_password(password):
+            if password_valid:
+                logger.info(f"Login successful for user: {username}")
                 return Response({
                     'message': 'Login successful',
                     'user': {
@@ -93,24 +104,16 @@ class LoginView(APIView):
                         'username': user_data['username'],
                         'email': user_data['email']
                     }
-                })
+                }, status=status.HTTP_200_OK)
             else:
+                logger.warning(f"Invalid password for user: {username}")
                 return Response(
                     {'error': 'Invalid credentials'}, 
                     status=status.HTTP_401_UNAUTHORIZED
                 )
-                
-        except json.JSONDecodeError:
-            return Response(
-                {'error': 'Invalid JSON'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
         except Exception as e:
-            logger.error(f"Error during login: {str(e)}")
-            return Response(
-                {'error': 'Internal server error'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            logger.error(f"Error during login: {e}")
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class MoodEntryView(APIView):
@@ -121,7 +124,7 @@ class MoodEntryView(APIView):
 
     def post(self, request):
         try:
-            data = json.loads(request.body)
+            data = request.data
             user_id = data.get('user_id')
             mood = data.get('mood')
             notes = data.get('notes', '')
@@ -148,11 +151,6 @@ class MoodEntryView(APIView):
                 'mood_entry_id': str(result.inserted_id)
             }, status=status.HTTP_201_CREATED)
             
-        except json.JSONDecodeError:
-            return Response(
-                {'error': 'Invalid JSON'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
         except Exception as e:
             logger.error(f"Error saving mood entry: {str(e)}")
             return Response(

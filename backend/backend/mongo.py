@@ -1,7 +1,11 @@
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 import logging
-from django.conf import settings
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,8 +19,15 @@ class MongoDB:
     def get_client(cls):
         if cls._client is None:
             try:
+                # Try to get from Django settings first, fallback to environment variables
+                try:
+                    from django.conf import settings
+                    mongo_uri = settings.MONGO_URI
+                except:
+                    mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+                
                 cls._client = MongoClient(
-                    settings.MONGO_URI,
+                    mongo_uri,
                     serverSelectionTimeoutMS=5000
                 )
                 # Test the connection
@@ -31,7 +42,16 @@ class MongoDB:
     def get_db(cls):
         if cls._db is None:
             client = cls.get_client()
-            cls._db = client[settings.MONGO_DB]
+            
+            # Try to get from Django settings first, fallback to environment variables
+            try:
+                from django.conf import settings
+                db_name = settings.MONGO_DB
+            except:
+                db_name = os.getenv('MONGO_DB', 'echosoul')
+            
+            cls._db = client[db_name]
+            logger.info(f"Connected to database: {db_name}")
         return cls._db
 
     @classmethod
@@ -41,17 +61,3 @@ class MongoDB:
             cls._client = None
             cls._db = None
             logger.info("MongoDB connection closed")
-
-# Initialize connection
-try:
-    client = MongoDB.get_client()
-    if client:
-        db = MongoDB.get_db()
-        logger.info(f"Connected to database: {settings.MONGO_DB}")
-    else:
-        db = None
-        logger.warning("MongoDB connection failed")
-except Exception as e:
-    logger.error(f"Error initializing MongoDB connection: {e}")
-    client = None
-    db = None

@@ -13,6 +13,54 @@
   transition: background 0.5s;
 }
 
+.navbar-auth {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.navbar-auth button {
+  padding: 0.5em 1em;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.user-info span {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.sign-in-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.5em 1.2em;
+}
+
+.sign-in-btn:hover {
+  background: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.sign-out-btn {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.sign-out-btn:hover {
+  background: var(--primary-light);
+}
+
 .navbar-logo {
   font-size: 1.5em;
   font-weight: bold;
@@ -80,4 +128,4 @@
   transform: translateY(0) scale(1);
   opacity: 1;
   pointer-events: auto;
-} 
+}

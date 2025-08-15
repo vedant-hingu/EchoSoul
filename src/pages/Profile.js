@@ -12,18 +12,23 @@ const exampleUser = {
   gender: 'Female',
 };
 
-const Profile = () => {
+const Profile = ({ user: propUser, isAuthenticated: propIsAuthenticated, onSignIn }) => {
   const [showSignIn, setShowSignIn] = useState(false);
-  const [user, setUser] = useState(() => {
-    // Try to get user from localStorage/sessionStorage if you want persistence
-    const saved = window.sessionStorage.getItem('echosoul_user');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [isAuthenticated, setIsAuthenticated] = useState(!!user);
+  const [user, setUser] = useState(propUser);
+  const [isAuthenticated, setIsAuthenticated] = useState(propIsAuthenticated);
 
+  // Update local state when props change
+  useEffect(() => {
+    setUser(propUser);
+    setIsAuthenticated(propIsAuthenticated);
+  }, [propUser, propIsAuthenticated]);
+  
+  // Show sign-in modal when not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       setShowSignIn(true);
+    } else {
+      setShowSignIn(false);
     }
   }, [isAuthenticated]);
 
@@ -32,7 +37,10 @@ const Profile = () => {
     setUser(userData);
     setIsAuthenticated(true);
     setShowSignIn(false);
-    window.sessionStorage.setItem('echosoul_user', JSON.stringify(userData));
+    // Call the parent onSignIn to update app-wide state
+    if (onSignIn) {
+      onSignIn(userData);
+    }
   };
 
   const handleLogout = () => {
@@ -83,4 +91,4 @@ const Profile = () => {
   );
 };
 
-export default Profile; 
+export default Profile;

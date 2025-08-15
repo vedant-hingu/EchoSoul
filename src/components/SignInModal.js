@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { authAPI } from '../services/api';
 import './SignInModal.css';
 
 const SignInModal = ({ isOpen, onClose, onSignIn }) => {
@@ -12,6 +13,7 @@ const SignInModal = ({ isOpen, onClose, onSignIn }) => {
     confirmPassword: ''
   });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,33 +66,41 @@ const SignInModal = ({ isOpen, onClose, onSignIn }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      let endpoint = mode === 'login' ? '/api/login/' : '/api/signup/';
-      let payload = mode === 'login'
-        ? { username: formData.username, password: formData.password }
-        : {
+      setLoading(true);
+      setErrors({});
+      
+      try {
+        if (mode === 'login') {
+          const data = await authAPI.login({
+            username: formData.email, // Using email as username for login
+            password: formData.password
+          });
+          
+          if (onSignIn) {
+            onSignIn(data.user);
+          }
+          onClose();
+        } else {
+          const data = await authAPI.signup({
             username: formData.username,
             email: formData.email,
             password: formData.password,
             phone: formData.phone,
             address: formData.address
-          };
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          if (onSignIn) {
-            onSignIn(payload);
-          }
-          onClose();
-        } else {
-          setErrors({ api: data.error || 'An error occurred' });
+          });
+          
+          // Switch to login mode after successful signup
+          setMode('login');
+          setFormData({
+            ...formData,
+            confirmPassword: ''
+          });
+          setErrors({ success: 'Account created successfully! Please log in.' });
         }
       } catch (err) {
-        setErrors({ api: 'Network error' });
+        setErrors({ api: err.message || 'An error occurred' });
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -202,4 +212,4 @@ const SignInModal = ({ isOpen, onClose, onSignIn }) => {
   );
 };
 
-export default SignInModal; 
+export default SignInModal;
