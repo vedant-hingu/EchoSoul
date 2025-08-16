@@ -2,6 +2,7 @@ from datetime import datetime
 from bson import ObjectId
 import logging
 from backend.mongo import MongoDB
+from backend.counter import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +37,19 @@ class User(MongoModel):
         if self.collection is None:
             return None
         
+        # Get next sequential ID
+        user_id = Counter.get_next_id('users')
+        
         user_data = {
+            "_id": user_id,
             "username": username,
             "email": email,
             "password_hash": password_hash,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.utcnow()
         }
         
         try:
             result = self.collection.insert_one(user_data)
-            user_data["_id"] = result.inserted_id
             return user_data
         except Exception as e:
             logger.error(f"Error creating user: {e}")
@@ -81,34 +84,35 @@ class MoodEntry(MongoModel):
         super().__init__("mood_entries")
         self.create_indexes()
     
-    def create_entry(self, user_id, mood_score, mood_description, activities=None):
+    def create_entry(self, username, mood_description):
         """Create a new mood entry"""
         if self.collection is None:
             return None
         
+        # Get next sequential ID
+        entry_id = Counter.get_next_id('mood_entries')
+        
         entry_data = {
-            "user_id": user_id,
-            "mood_score": mood_score,
+            "_id": entry_id,
+            "username": username,
             "mood_description": mood_description,
-            "activities": activities or [],
             "created_at": datetime.utcnow()
         }
         
         try:
             result = self.collection.insert_one(entry_data)
-            entry_data["_id"] = result.inserted_id
             return entry_data
         except Exception as e:
             logger.error(f"Error creating mood entry: {e}")
             return None
     
-    def get_user_entries(self, user_id, limit=50):
+    def get_user_entries(self, username, limit=50):
         """Get mood entries for a specific user"""
         if self.collection is None:
             return []
         
         try:
-            cursor = self.collection.find({"user_id": user_id}).sort("created_at", -1).limit(limit)
+            cursor = self.collection.find({"username": username}).sort("created_at", -1).limit(limit)
             return list(cursor)
         except Exception as e:
             logger.error(f"Error getting user entries: {e}")
@@ -126,7 +130,11 @@ class ChatSession(MongoModel):
         if self.collection is None:
             return None
         
+        # Get next sequential ID
+        session_id = Counter.get_next_id('chat_sessions')
+        
         session_data = {
+            "_id": session_id,
             "user_id": user_id,
             "messages": [initial_message],
             "created_at": datetime.utcnow(),
@@ -135,7 +143,6 @@ class ChatSession(MongoModel):
         
         try:
             result = self.collection.insert_one(session_data)
-            session_data["_id"] = result.inserted_id
             return session_data
         except Exception as e:
             logger.error(f"Error creating chat session: {e}")
@@ -148,7 +155,7 @@ class ChatSession(MongoModel):
         
         try:
             result = self.collection.update_one(
-                {"_id": ObjectId(session_id)},
+                {"_id": session_id},
                 {
                     "$push": {"messages": message},
                     "$set": {"updated_at": datetime.utcnow()}

@@ -167,6 +167,38 @@
   transform: translateY(0);
 }
 
+.api-error {
+  background: rgba(252, 92, 125, 0.1);
+  border: 1px solid var(--secondary);
+  border-radius: 8px;
+  padding: 0.8em;
+  margin: 0.5em 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+.success-message {
+  background: rgba(46, 204, 113, 0.1);
+  border: 1px solid #2ecc71;
+  border-radius: 8px;
+  padding: 0.8em;
+  margin: 0.5em 0;
+  text-align: center;
+  color: #2ecc71;
+  font-weight: 500;
+}
+
+.signin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.signin-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 @media (max-width: 480px) {
   .modal-content {
     padding: 2em 1.5em;

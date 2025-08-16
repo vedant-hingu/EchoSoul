@@ -101,9 +101,9 @@ export const moodAPI = {
   },
   
   // Get mood entries for a user
-  getMoodEntries: async (userId) => {
+  getMoodEntries: async (username) => {
     try {
-      const response = await fetch(`${API_URL}/mood/?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/mood/?username=${username}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

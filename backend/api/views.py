@@ -125,31 +125,33 @@ class MoodEntryView(APIView):
     def post(self, request):
         try:
             data = request.data
-            user_id = data.get('user_id')
+            username = data.get('username')
             mood = data.get('mood')
-            notes = data.get('notes', '')
+            mood_description = data.get('mood_description', mood)
             
-            if not user_id or not mood:
+            if not username or not mood:
                 return Response(
-                    {'error': 'User ID and mood are required'}, 
+                    {'error': 'Username and mood are required'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Create mood entry document
-            mood_entry = {
-                'user_id': user_id,
-                'mood': mood,
-                'notes': notes,
-                'created_at': datetime.utcnow()
-            }
+            # Use the MoodEntry model to create entry
+            from .models import MoodEntry
+            mood_model = MoodEntry()
+            mood_entry = mood_model.create_entry(
+                username=username,
+                mood_description=mood_description
+            )
             
-            # Save to MongoDB
-            result = self.get_mood_collection().insert_one(mood_entry)
-            
-            return Response({
-                'message': 'Mood entry saved successfully',
-                'mood_entry_id': str(result.inserted_id)
-            }, status=status.HTTP_201_CREATED)
+            if mood_entry:
+                return Response({
+                    'message': 'Mood entry saved successfully',
+                    'mood_entry_id': str(mood_entry['_id'])
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'error': 'Failed to save mood entry'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
         except Exception as e:
             logger.error(f"Error saving mood entry: {str(e)}")
@@ -160,27 +162,27 @@ class MoodEntryView(APIView):
     
     def get(self, request):
         try:
-            user_id = request.query_params.get('user_id')
-            if not user_id:
+            username = request.query_params.get('username')
+            if not username:
                 return Response(
-                    {'error': 'User ID is required'}, 
+                    {'error': 'Username is required'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Fetch mood entries for the user
-            cursor = self.get_mood_collection().find(
-                {'user_id': user_id}
-            ).sort('created_at', -1)  # Most recent first
+            # Use the MoodEntry model to get entries
+            from .models import MoodEntry
+            mood_model = MoodEntry()
+            mood_entries_data = mood_model.get_user_entries(username)
             
             # Convert ObjectId to string for JSON serialization
             mood_entries = []
-            for doc in cursor:
+            for doc in mood_entries_data:
                 doc['_id'] = str(doc['_id'])
                 doc['created_at'] = doc['created_at'].isoformat()
                 mood_entries.append(doc)
             
             return Response({
-                'user_id': user_id,
+                'username': username,
                 'count': len(mood_entries),
                 'mood_entries': mood_entries
             })

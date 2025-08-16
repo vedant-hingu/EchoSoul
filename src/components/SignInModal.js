@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import './SignInModal.css';
 
@@ -14,6 +15,7 @@ const SignInModal = ({ isOpen, onClose, onSignIn }) => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -79,6 +81,8 @@ const SignInModal = ({ isOpen, onClose, onSignIn }) => {
           if (onSignIn) {
             onSignIn(data.user);
           }
+          // Redirect to profile after successful login
+          navigate('/profile');
           onClose();
         } else {
           const data = await authAPI.signup({
@@ -186,8 +190,10 @@ const SignInModal = ({ isOpen, onClose, onSignIn }) => {
               {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
             </div>
           )}
-          <button type="submit" className="signin-btn">
-            {mode === 'login' ? 'Log In' : 'Sign Up'}
+          {errors.api && <div className="error-message api-error">{errors.api}</div>}
+          {errors.success && <div className="success-message">{errors.success}</div>}
+          <button type="submit" className="signin-btn" disabled={loading}>
+            {loading ? 'Please wait...' : (mode === 'login' ? 'Log In' : 'Sign Up')}
           </button>
         </form>
         <div style={{ textAlign: 'center', marginTop: '1em' }}>

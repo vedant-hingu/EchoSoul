@@ -14,43 +14,21 @@ const moods = [
 const MoodTracker = ({ user }) => {
   const [selected, setSelected] = useState(null);
   const [notes, setNotes] = useState('');
-  const [recentMoods, setRecentMoods] = useState([]);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch recent moods when component mounts
-  useEffect(() => {
-    if (user && user.id) {
-      fetchRecentMoods();
-    }
-  }, [user]);
-
-  const fetchRecentMoods = async () => {
-    try {
-      setLoading(true);
-      const moodData = await moodAPI.getMoods(user.id);
-      setRecentMoods(moodData);
-    } catch (error) {
-      console.error('Failed to fetch mood data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleMoodSelect = async (idx) => {
     setSelected(idx);
     
     // If user is logged in, save the mood entry
-    if (user && user.id) {
+    if (user && user.username) {
       try {
         await moodAPI.saveMood({
-          user_id: user.id,
+          username: user.username,
           mood: moods[idx].label,
-          notes: notes
+          mood_description: moods[idx].label
         });
         
-        // Refresh the mood list
-        fetchRecentMoods();
       } catch (error) {
         console.error('Failed to save mood:', error);
       }
@@ -79,24 +57,6 @@ const MoodTracker = ({ user }) => {
       
 
       
-      {user && recentMoods.length > 0 && (
-        <div className="recent-moods">
-          <h3>Your Recent Moods</h3>
-          {loading ? (
-            <p>Loading your mood history...</p>
-          ) : (
-            <ul>
-              {recentMoods.slice(0, 5).map((entry, idx) => (
-                <li key={idx}>
-                  <span className="mood-date">{new Date(entry.timestamp).toLocaleDateString()}</span>
-                  <span className="mood-label">{entry.mood}</span>
-                  {entry.notes && <p className="mood-notes">{entry.notes}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
     </div>
   );
 };
