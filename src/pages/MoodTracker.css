@@ -115,4 +115,106 @@
   0% { opacity: 0; transform: scale(0.8) translateY(20px); }
   80% { opacity: 1; transform: scale(1.05) translateY(-3px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
-} 
+}
+
+/* Mood prompt popup */
+.mood-popup-overlay {
+  position: fixed;
+  inset: 0;
+  /* Subtle, non-disruptive scrim so the page doesn't visually change */
+  background: rgba(0, 0, 0, 0.08);
+  /* Soft background blur */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlayShow 200ms ease-out forwards;
+  z-index: 1000;
+}
+
+@keyframes overlayShow {
+  0% { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+  100% { opacity: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+}
+
+.mood-popup {
+  width: min(560px, 92vw);
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 12px 40px #0002, 0 6px 18px #0001;
+  padding: 28px 24px 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: popIn 420ms cubic-bezier(0.22, 1, 0.36, 1) 120ms forwards;
+}
+
+@keyframes popIn {
+  0% { transform: translateY(18px) scale(0.94); opacity: 0; }
+  70% { transform: translateY(-6px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.mood-popup::before {
+  content: '';
+  position: absolute;
+  inset: -40% -20% auto -20%;
+  height: 260px;
+  background: conic-gradient(from 0deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1, #fbc2eb, #ff9a9e);
+  filter: blur(36px) saturate(1.15);
+  opacity: 0.22;
+  animation: swirl 12s linear infinite;
+}
+
+@keyframes swirl {
+  to { transform: rotate(360deg); }
+}
+
+.mood-popup-emoji {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  animation: floaty 2.2s ease-in-out infinite;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.mood-popup-title {
+  margin: 6px 0 6px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #ff4b2b, #1e90ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.mood-popup-text {
+  margin: 0 8px 16px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.mood-popup-btn {
+  padding: 0.7em 2.2em;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  border: none;
+  border-radius: 999px;
+  box-shadow: 0 6px 20px #43e97b55;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.mood-popup-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 10px 28px #43e97b66;
+  filter: saturate(1.05);
+}
+
+.mood-popup-btn:active { transform: translateY(0) scale(0.99); }

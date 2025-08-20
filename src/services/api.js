@@ -70,6 +70,115 @@ export const authAPI = {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
+  
+  // Change password
+  changePassword: async ({ identifier, current_password, new_password }) => {
+    try {
+      const response = await fetch(`${API_URL}/change-password/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, current_password, new_password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to change password');
+      }
+      return data;
+    } catch (error) {
+      console.error('Change password error:', error);
+      throw error;
+    }
+  },
+  // Update profile fields; if username changes, backend migrates related data
+  updateProfile: async ({ identifier, username, email, phone, address }) => {
+    try {
+      const response = await fetch(`${API_URL}/profile/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, username, email, phone, address }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      return data; // { message, user }
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  },
+};
+
+/**
+ * Chatbot API calls
+ */
+export const chatAPI = {
+  // Send a message to chatbot with mood context
+  sendMessage: async ({ message, mood = 'neutral', username }) => {
+    try {
+      const response = await fetch(`${API_URL}/chat/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, mood, username }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Chat request failed');
+      }
+      return data; // { reply, mood, provider }
+    } catch (error) {
+      console.error('Chat error:', error);
+      throw error;
+    }
+  },
+  // Clear chat history for a user
+  clearHistory: async (username) => {
+    try {
+      // First try DELETE without body
+      let response = await fetch(`${API_URL}/chat/history/?username=${encodeURIComponent(username)}`, {
+        method: 'DELETE',
+      });
+      let data = null;
+      try { data = await response.json(); } catch (_) { data = null; }
+      if (!response.ok) {
+        // Fallback: POST with action payload
+        response = await fetch(`${API_URL}/chat/history/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, action: 'clear' }),
+        });
+        try { data = await response.json(); } catch (_) { data = null; }
+        if (!response.ok) {
+          const errMsg = (data && data.error) ? data.error : `Failed to clear chat history (status ${response.status})`;
+          throw new Error(errMsg);
+        }
+      }
+      return data || { message: 'Chat history cleared' };
+    } catch (error) {
+      console.error('Clear chat history error:', error);
+      throw error;
+    }
+  },
+  // Get chat history for a user
+  getHistory: async (username) => {
+    try {
+      const response = await fetch(`${API_URL}/chat/history/?username=${encodeURIComponent(username)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch chat history');
+      }
+      return data; // { username, count, messages: [...] }
+    } catch (error) {
+      console.error('Chat history error:', error);
+      throw error;
+    }
+  },
 };
 
 /**
@@ -103,7 +212,7 @@ export const moodAPI = {
   // Get mood entries for a user
   getMoodEntries: async (username) => {
     try {
-      const response = await fetch(`${API_URL}/mood/?username=${username}`, {
+      const response = await fetch(`${API_URL}/mood/?username=${encodeURIComponent(username)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -128,6 +237,7 @@ export const moodAPI = {
 const api = {
   auth: authAPI,
   mood: moodAPI,
+  chat: chatAPI,
 };
 
 export default api;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { moodAPI } from '../services/api';
 import './MoodTracker.css';
 
@@ -15,7 +15,18 @@ const MoodTracker = ({ user }) => {
   const [selected, setSelected] = useState(null);
   const [notes, setNotes] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const [showMoodPrompt, setShowMoodPrompt] = useState(false);
 
+  // If redirected from chatbot without mood, show beautiful animated popup
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('reason') === 'need-mood') {
+      setShowMoodPrompt(true);
+      // Clean the URL (remove query) without navigation
+      try { window.history.replaceState({}, '', '/mood'); } catch {}
+    }
+  }, [location.search]);
 
   const handleMoodSelect = async (idx) => {
     setSelected(idx);
@@ -34,6 +45,10 @@ const MoodTracker = ({ user }) => {
       }
     }
     
+    // Persist selected mood for chatbot context
+    try {
+      localStorage.setItem('echosoul_selected_mood', (moods[idx].label || '').toLowerCase());
+    } catch {}
     // Navigate to chatbot
     navigate('/chatbot');
   };
@@ -54,9 +69,16 @@ const MoodTracker = ({ user }) => {
           </div>
         ))}
       </div>
-      
-
-      
+      {showMoodPrompt && (
+        <div className="mood-popup-overlay" onClick={() => setShowMoodPrompt(false)}>
+          <div className="mood-popup" onClick={e => e.stopPropagation()}>
+            <div className="mood-popup-emoji">💫😊</div>
+            <h3 className="mood-popup-title">Choose your vibe first</h3>
+            <p className="mood-popup-text">Pick a mood so I can support you in the tone you need. You’ve got this! 💖</p>
+            <button className="mood-popup-btn" onClick={() => setShowMoodPrompt(false)}>Okay!</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

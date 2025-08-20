@@ -1,70 +1,101 @@
-# Getting Started with Create React App
+# EchoSoul — Mental Health Companion
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+EchoSoul is a full‑stack mental wellness companion. It helps users track mood, chat with a supportive AI assistant, and manage their profile and preferences. The chatbot adapts tone to the user’s selected mood and lightly adjusts phrasing based on message sentiment.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- __Chatbot with mood adaptation__: AI replies tuned to moods like Calm, Happy, Sad, Angry, Anxious. Fallback local ML/rule-based tone.
+- __Mood tracking and insights__: Save moods and view trends, distributions, and weekly activity.
+- __Profile management__: Update username/email/phone/address with data migration for mood entries and chat history.
+- __Local avatars__: Per‑user avatar stored in browser storage.
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- __Frontend__: React (Create React App), Recharts, Fetch API
+- __Backend__: Django + Django REST Framework
+- __Database__: MongoDB (via a simple wrapper in `backend/mongo.py`)
+- __AI__: Optional OpenAI API; fallback to `backend/api/chatbot.py` (TF‑IDF + LogisticRegression via scikit‑learn or rule‑based)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Project Structure
 
-### `npm test`
+```
+.
+├─ src/                 # React app (pages, components, services)
+│  ├─ pages/            # Chatbot, Profile, etc.
+│  ├─ components/       # Reusable UI components
+│  └─ services/api.js   # API client (auth, chat, mood)
+├─ public/              # Static assets
+├─ backend/             # Django project
+│  ├─ api/              # DRF views, models, chatbot
+│  ├─ backend/          # Django settings/asgi/wsgi
+│  └─ .env              # Backend environment variables
+├─ requirements.txt     # Python dependencies
+└─ package.json         # Frontend dependencies and scripts
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Key Endpoints
 
-### `npm run build`
+- `POST /api/signup/` — create account
+- `POST /api/login/` — login, returns user info
+- `POST /api/profile/update/` — update profile; migrates related records on username change
+- `POST /api/chat/` — chatbot reply with `{ message, mood, username? }`
+- `GET /api/chat/history/?username=` — chat history
+- `DELETE /api/chat/history/?username=` — clear history (frontend also falls back to `POST /api/chat/history/` with `{ action: 'clear' }`)
+- `GET /api/mood/?username=` — list mood entries
+- `POST /api/mood/` — save mood entry
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Setup
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1) Frontend
+- Node 18+ recommended
+- Install and start:
+```
+npm install
+npm start
+```
+App runs at http://localhost:3000
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2) Backend
+- Python 3.10–3.12 recommended
+- Create venv and install:
+```
+python -m venv backend-venv
+backend-venv\\Scripts\\activate
+pip install -r requirements.txt
+```
+- Configure `backend/.env` (example):
+```
+MONGO_URI=mongodb://localhost:27017/echosoul
+OPENAI_API_KEY= # optional
+OPENAI_MODEL=gpt-4o-mini
+```
+- Run server:
+```
+cd backend
+python manage.py runserver 0.0.0.0:8000
+```
+API base: http://127.0.0.1:8000/api
 
-### `npm run eject`
+## Chatbot Behavior
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- Uses OpenAI if `OPENAI_API_KEY` is set; otherwise falls back to `backend/api/chatbot.py`.
+- Fallback path applies sentiment cues using scikit‑learn if available; otherwise a rule‑based lexicon.
+- Replies vary slightly to avoid repetition, especially in Calm mode.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Notes & Troubleshooting
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- After changing username, backend migrates `mood_entries` and `chat_messages` to keep data consistent.
+- Clear history supports both DELETE and POST (for environments that block DELETE).
+- If scikit‑learn fails to install, the chatbot works in rule‑based mode.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Scripts
 
-## Learn More
+- Frontend:
+  - `npm start` — dev server
+  - `npm run build` — production build
+- Backend:
+  - `python manage.py runserver` — dev server
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## License
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Proprietary. For internal use during development.

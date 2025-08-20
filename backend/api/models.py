@@ -32,7 +32,7 @@ class User(MongoModel):
         super().__init__("users")
         self.create_indexes()
     
-    def create_user(self, username, email, password_hash):
+    def create_user(self, username, email, password_hash, phone=None, address=None):
         """Create a new user"""
         if self.collection is None:
             return None
@@ -47,6 +47,11 @@ class User(MongoModel):
             "password_hash": password_hash,
             "created_at": datetime.utcnow()
         }
+        # Optional fields
+        if phone is not None:
+            user_data["phone"] = phone
+        if address is not None:
+            user_data["address"] = address
         
         try:
             result = self.collection.insert_one(user_data)
