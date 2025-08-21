@@ -111,7 +111,14 @@ const Chatbot = () => {
           onKeyDown={e => { if (e.key === 'Enter' && !sending) { e.preventDefault(); handleSend(); } }}
           disabled={sending}
         />
-        <button onClick={handleSend} disabled={sending || !input.trim()}>{sending ? '...' : 'Send'}</button>
+        <button
+          onClick={handleSend}
+          disabled={sending || !input.trim()}
+          aria-label="Send message"
+          title="Send"
+        >
+          {sending ? '...' : <span className="send-arrow">➤</span>}
+        </button>
       </div>
     </div>
   );

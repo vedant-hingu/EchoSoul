@@ -12,7 +12,7 @@ const resources = [
     title: 'Mental Health Articles',
     desc: 'Read trusted articles on mental wellness.',
     icon: '📚',
-    link: 'https://www.mentalhealth.gov/',
+    link: 'https://www.mentalhealth.org.uk/explore-mental-health/articles',
   },
   {
     title: 'Find Support',

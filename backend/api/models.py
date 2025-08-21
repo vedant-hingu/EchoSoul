@@ -170,3 +170,77 @@ class ChatSession(MongoModel):
         except Exception as e:
             logger.error(f"Error adding message: {e}")
             return False
+
+class ActivityUsage(MongoModel):
+    """Tracks when a user uses an activity (e.g., a tool/exercise in the app)"""
+    
+    def __init__(self):
+        super().__init__("activity_usages")
+        self.create_indexes()
+    
+    def create_entry(self, username: str, activity_key: str, metadata: dict | None = None):
+        """Create a usage entry for a given activity.
+        activity_key: a stable identifier for the activity (e.g., 'breathing_exercise', 'journal', 'gratitude').
+        metadata: optional extra info like duration, outcome, etc.
+        """
+        if self.collection is None:
+            return None
+        try:
+            usage_id = Counter.get_next_id('activity_usages')
+            doc = {
+                "_id": usage_id,
+                "username": username,
+                "activity_key": activity_key,
+                "metadata": metadata or {},
+                "created_at": datetime.utcnow(),
+            }
+            self.collection.insert_one(doc)
+            return doc
+        except Exception as e:
+            logger.error(f"Error creating activity usage: {e}")
+            return None
+    
+    def get_user_entries(self, username: str, limit: int = 100):
+        """Return recent activity usage for a user"""
+        if self.collection is None:
+            return []
+        try:
+            cursor = self.collection.find({"username": username}).sort("created_at", -1).limit(limit)
+            return list(cursor)
+        except Exception as e:
+            logger.error(f"Error getting activity usage: {e}")
+            return []
+
+class JournalEntry(MongoModel):
+    """Journaling entries written by users"""
+    def __init__(self):
+        super().__init__("journal_entries")
+        self.create_indexes()
+
+    def create_entry(self, username: str, content: str, metadata: dict | None = None):
+        if self.collection is None:
+            return None
+        try:
+            entry_id = Counter.get_next_id('journal_entries')
+            doc = {
+                "_id": entry_id,
+                "username": username,
+                "content": content,
+                "metadata": metadata or {},
+                "created_at": datetime.utcnow(),
+            }
+            self.collection.insert_one(doc)
+            return doc
+        except Exception as e:
+            logger.error(f"Error creating journal entry: {e}")
+            return None
+
+    def get_user_entries(self, username: str, limit: int = 100):
+        if self.collection is None:
+            return []
+        try:
+            cursor = self.collection.find({"username": username}).sort("created_at", -1).limit(limit)
+            return list(cursor)
+        except Exception as e:
+            logger.error(f"Error getting journal entries: {e}")
+            return []

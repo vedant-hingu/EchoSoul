@@ -12,13 +12,27 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+import logging
+from dotenv import load_dotenv, dotenv_values
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from backend/.env (same folder as manage.py's parent)
+_logger = logging.getLogger(__name__)
+env_path = BASE_DIR / '.env'
+load_dotenv(dotenv_path=env_path)
+_vals = dotenv_values(env_path) if env_path.exists() else {}
+# Backfill any missing keys into process env (without overwriting existing ones)
+for k, v in (_vals or {}).items():
+    if k not in os.environ and v is not None:
+        os.environ[k] = str(v)
+_logger.info("ENV check: BASE_DIR=%s", str(BASE_DIR))
+_logger.info("ENV check: .env exists=%s path=%s", env_path.exists(), str(env_path))
+_logger.info(
+    "ENV check: GEMINI_API_KEY %s",
+    "present" if bool(os.getenv('GEMINI_API_KEY')) else "missing",
+)
 
 # MongoDB Configuration
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
@@ -29,7 +43,7 @@ MONGO_DB = os.getenv('MONGO_DB', 'echosoul')
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!r)6lpfo1#r3j%3ha))+u&rh$*9(3bc*!343kn-8n0m-!a9d7f'
+SECRET_KEY = 'django-insecure-!r)6lpfo1#r3j%3ha))+u&rh$9(3bc!343kn-8n0m-!a9d7f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -168,4 +182,4 @@ CORS_ALLOW_HEADERS = [
 # CORS_ALLOWED_ORIGINS = [
 #     "http://localhost:3000",
 #     "http://127.0.0.1:3000",
-# ]
+# ]

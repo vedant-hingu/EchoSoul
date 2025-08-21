@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import './Activities.css';
+import { activityAPI, authAPI, journalAPI } from '../services/api';
 
 const activities = [
   {
@@ -23,6 +24,14 @@ const activities = [
     icon: '🎵',
   },
 ];
+
+// Map UI titles to stable activity keys for logging
+const ACTIVITY_KEYS = {
+  'Breathing Exercise': 'breathing_exercise',
+  'Journaling': 'journaling',
+  'Mindful Walking': 'mindful_walking',
+  'Peaceful Music': 'peaceful_music',
+};
 
 const PHASES = [
   { label: 'Breathe In', duration: 4, className: 'breathe-in' },
@@ -150,23 +159,57 @@ const BreathingTimer = ({ cycles = 4 }) => {
 const JournalingSection = () => {
   const [journalEntry, setJournalEntry] = useState('');
   const [journalEntries, setJournalEntries] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleJournalSubmit = (e) => {
+  // Load entries from backend on mount
+  React.useEffect(() => {
+    const user = authAPI.getCurrentUser();
+    const username = user?.username;
+    if (!username) return; // no-op if not logged in
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await journalAPI.getEntries({ username, limit: 100 });
+        if (cancelled) return;
+        const items = (data?.journal_entries || []).map((e) => ({
+          id: e._id,
+          content: e.content,
+          date: e.created_at ? new Date(e.created_at).toLocaleString() : '',
+        }));
+        setJournalEntries(items);
+      } catch (err) {
+        console.warn('Failed to load journal entries', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleJournalSubmit = async (e) => {
     e.preventDefault();
-    if (journalEntry.trim()) {
+    const content = journalEntry.trim();
+    if (!content) return;
+    try {
+      const user = authAPI.getCurrentUser();
+      const username = user?.username;
+      if (!username) return; // only save when signed in
+      setSaving(true);
+      const res = await journalAPI.saveEntry({ username, content, metadata: {} });
+      // Prepend locally for instant UX
       const newEntry = {
-        id: Date.now(),
-        content: journalEntry,
-        date: new Date().toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
+        id: res?.id || Date.now(),
+        content,
+        date: new Date().toLocaleString(),
       };
-      setJournalEntries([newEntry, ...journalEntries]);
+      setJournalEntries((prev) => [newEntry, ...prev]);
       setJournalEntry('');
+    } catch (err) {
+      console.warn('Failed to save journal entry', err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -194,11 +237,12 @@ const JournalingSection = () => {
             className="journal-textarea"
             rows="8"
           />
-          <button type="submit" className="journal-submit-btn">
-            Save Entry
+          <button type="submit" className="journal-submit-btn" disabled={saving}>
+            {saving ? 'Saving...' : 'Save Entry'}
           </button>
         </form>
 
+        {loading && <div style={{ marginTop: '0.75em', opacity: 0.8 }}>Loading entries...</div>}
         {journalEntries.length > 0 && (
           <div className="journal-entries">
             <h4>Previous Entries</h4>
@@ -540,6 +584,19 @@ const Activities = () => {
   const [showMusic, setShowMusic] = useState(false);
   const [closingMusic, setClosingMusic] = useState(false);
 
+  const logActivityOpen = async (title) => {
+    try {
+      const user = authAPI.getCurrentUser();
+      const username = user?.username;
+      if (!username) return; // only log for signed-in users
+      const activity_key = ACTIVITY_KEYS[title] || title.toLowerCase().replace(/\s+/g, '_');
+      await activityAPI.logUsage({ username, activity_key, metadata: { event: 'open' } });
+    } catch (e) {
+      // best-effort; avoid UI disruption
+      console.warn('Activity log failed', e);
+    }
+  };
+
   const handleCardClick = (title) => {
     if (title === 'Breathing Exercise') {
       setShowTimer(true);
@@ -549,6 +606,7 @@ const Activities = () => {
       setTimeout(() => {
         timerRef.current.scrollIntoView({ behavior: 'smooth' });
       }, 100); // allow timer to render
+      logActivityOpen(title);
     } else if (title === 'Journaling') {
       setShowJournal(true);
       setShowTimer(false);
@@ -557,6 +615,7 @@ const Activities = () => {
       setTimeout(() => {
         journalRef.current.scrollIntoView({ behavior: 'smooth' });
       }, 100); // allow journal to render
+      logActivityOpen(title);
     } else if (title === 'Mindful Walking') {
       setShowWalking(true);
       setShowTimer(false);
@@ -565,6 +624,7 @@ const Activities = () => {
       setTimeout(() => {
         walkingRef.current.scrollIntoView({ behavior: 'smooth' });
       }, 100); // allow walking to render
+      logActivityOpen(title);
     } else if (title === 'Peaceful Music') { // Added Peaceful Music
       setShowMusic(true);
       setShowTimer(false);
@@ -573,6 +633,7 @@ const Activities = () => {
       setTimeout(() => {
         musicRef.current.scrollIntoView({ behavior: 'smooth' });
       }, 100); // allow music to render
+      logActivityOpen(title);
     }
   };
 

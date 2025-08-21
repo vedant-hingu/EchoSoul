@@ -45,13 +45,13 @@
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 1.5em 2em 1.5em;
+  padding: 88px 1.5em 2em 1.5em; /* top padding accounts for fixed navbar height */
   transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
 }
 
 @media (max-width: 700px) {
   .page-container {
-    padding: 0 0.5em 2em 0.5em;
+    padding: 96px 0.5em 2em 0.5em; /* slightly larger top padding on small screens */
   }
   .navbar {
     flex-direction: column;

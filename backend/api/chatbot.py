@@ -8,6 +8,7 @@ except Exception:
     GEMINI_AVAILABLE = False
 from typing import List, Dict, Any
 import os
+import logging
 
 MOODS = {"happy", "sad", "angry", "anxious", "calm"}
 
@@ -35,8 +36,13 @@ def _gemini_system_prompt(mood: str) -> str:
 
 def generate_gemini_response(user_message: str, mood: str, history: List[Dict[str, Any]]) -> str | None:
     """Use Google Gemini with mood-aware system prompt and short history."""
+    logger = logging.getLogger(__name__)
     api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
-    if not (GEMINI_AVAILABLE and api_key):
+    if not GEMINI_AVAILABLE:
+        logger.info("Gemini SDK not available; ensure google-generativeai is installed")
+        return None
+    if not api_key:
+        logger.info("Gemini API key missing (GEMINI_API_KEY/GOOGLE_API_KEY)")
         return None
     try:
         genai.configure(api_key=api_key)
@@ -64,8 +70,13 @@ def generate_gemini_response(user_message: str, mood: str, history: List[Dict[st
         )
         resp = chat.send_message(user_message or '', generation_config=cfg)
         text = (resp.text or '').strip()
-        print("chatbot working")
-        return text if text else None
-    except Exception:
+        if text:
+            logger.info(f"Gemini generation ok (model={model_name}, chars={len(text)})")
+            return text
+        else:
+            logger.warning("Gemini returned empty text; will fall back")
+            return None
+    except Exception as e:
+        logger.warning(f"Gemini generation error: {e}")
         return None
 

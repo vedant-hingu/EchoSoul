@@ -13,7 +13,7 @@ import os
 
 from backend.mongo import MongoDB
 from .chatbot import generate_gemini_response
-from .models import User
+from .models import User, ActivityUsage, JournalEntry
 from .utils import hash_password, verify_password
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,58 @@ class SignupView(APIView):
                 
         except Exception as e:
             logger.error(f"Error in signup: {e}")
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class JournalEntryView(APIView):
+    permission_classes = [AllowAny]
+
+    def get_collection(self):
+        return MongoDB.get_db()['journal_entries']
+
+    def get(self, request):
+        """Get journal entries for a user. Query params: username, optional limit"""
+        try:
+            username = request.query_params.get('username')
+            if not username:
+                return Response({'error': 'username is required'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                limit = int(request.query_params.get('limit') or 100)
+            except Exception:
+                limit = 100
+            col = self.get_collection()
+            cursor = col.find({'username': username}).sort('created_at', -1).limit(limit)
+            items = []
+            for doc in cursor:
+                try:
+                    doc['_id'] = str(doc['_id'])
+                except Exception:
+                    pass
+                if isinstance(doc.get('created_at'), datetime):
+                    doc['created_at'] = doc['created_at'].isoformat()
+                items.append(doc)
+            return Response({'journal_entries': items, 'count': len(items), 'username': username}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error fetching journal entries: {e}")
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request):
+        """Create a new journal entry. Body: { username, content, metadata? }"""
+        try:
+            data = request.data
+            username = data.get('username')
+            content = (data.get('content') or '').strip()
+            metadata = data.get('metadata') or {}
+            if not username or not content:
+                return Response({'error': 'username and content are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            model = JournalEntry()
+            created = model.create_entry(username=username, content=content, metadata=metadata)
+            if created:
+                return Response({'message': 'Journal entry saved', 'id': str(created['_id'])}, status=status.HTTP_201_CREATED)
+            return Response({'error': 'Failed to save journal entry'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            logger.error(f"Error saving journal entry: {e}")
             return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -414,6 +466,58 @@ class MoodEntryView(APIView):
             )
 
 @method_decorator(csrf_exempt, name='dispatch')
+class ActivityUsageView(APIView):
+    permission_classes = [AllowAny]
+
+    def get_collection(self):
+        return MongoDB.get_db()['activity_usages']
+
+    def get(self, request):
+        """Return activity usage entries for a username. Query params: username, optional limit"""
+        try:
+            username = request.query_params.get('username')
+            if not username:
+                return Response({'error': 'username is required'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                limit = int(request.query_params.get('limit') or 100)
+            except Exception:
+                limit = 100
+            col = self.get_collection()
+            cursor = col.find({'username': username}).sort('created_at', -1).limit(limit)
+            items = []
+            for doc in cursor:
+                try:
+                    doc['_id'] = str(doc['_id'])
+                except Exception:
+                    pass
+                if isinstance(doc.get('created_at'), datetime):
+                    doc['created_at'] = doc['created_at'].isoformat()
+                items.append(doc)
+            return Response({'activity_usages': items, 'count': len(items), 'username': username}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error fetching activity usages: {e}")
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request):
+        """Create an activity usage entry. Body: { username, activity_key, metadata? }"""
+        try:
+            data = request.data
+            username = data.get('username')
+            activity_key = (data.get('activity_key') or '').strip()
+            metadata = data.get('metadata') or {}
+            if not username or not activity_key:
+                return Response({'error': 'username and activity_key are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            usage_model = ActivityUsage()
+            created = usage_model.create_entry(username=username, activity_key=activity_key, metadata=metadata)
+            if created:
+                return Response({'message': 'Activity usage saved', 'id': str(created['_id'])}, status=status.HTTP_201_CREATED)
+            return Response({'error': 'Failed to save activity usage'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            logger.error(f"Error saving activity usage: {e}")
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@method_decorator(csrf_exempt, name='dispatch')
 class UpdateProfileView(APIView):
     permission_classes = [AllowAny]
 
@@ -464,8 +568,12 @@ class UpdateProfileView(APIView):
                 try:
                     mood_entries = db['mood_entries']
                     chat_messages = db['chat_messages']
+                    activity_usages = db['activity_usages']
+                    journal_entries = db['journal_entries']
                     mood_entries.update_many({'username': old_username}, {'$set': {'username': final_username}})
                     chat_messages.update_many({'username': old_username}, {'$set': {'username': final_username}})
+                    activity_usages.update_many({'username': old_username}, {'$set': {'username': final_username}})
+                    journal_entries.update_many({'username': old_username}, {'$set': {'username': final_username}})
                 except Exception as me:
                     logger.warning(f"Failed to migrate related records for username change {old_username}->{final_username}: {me}")
 

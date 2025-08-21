@@ -113,6 +113,82 @@ export const authAPI = {
 };
 
 /**
+ * Journal API calls
+ */
+export const journalAPI = {
+  // Save a journal entry
+  saveEntry: async ({ username, content, metadata }) => {
+    try {
+      const response = await fetch(`${API_URL}/journal/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, content, metadata }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save journal entry');
+      }
+      return data; // { message, id }
+    } catch (err) {
+      console.error('Save journal entry error:', err);
+      throw err;
+    }
+  },
+  // Get journal entries for a user
+  getEntries: async ({ username, limit = 100 }) => {
+    try {
+      const response = await fetch(`${API_URL}/journal/?username=${encodeURIComponent(username)}&limit=${encodeURIComponent(limit)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch journal entries');
+      }
+      return data; // { journal_entries, count, username }
+    } catch (err) {
+      console.error('Get journal entries error:', err);
+      throw err;
+    }
+  },
+};
+
+/**
+ * Activity usage API calls
+ */
+export const activityAPI = {
+  // Log an activity usage
+  logUsage: async ({ username, activity_key, metadata }) => {
+    try {
+      const response = await fetch(`${API_URL}/activity-usage/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, activity_key, metadata }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to log activity usage');
+      }
+      return data; // { message, id }
+    } catch (err) {
+      console.error('Log activity usage error:', err);
+      throw err;
+    }
+  },
+  // Fetch a user's activity usage history
+  getUsage: async ({ username, limit = 100 }) => {
+    try {
+      const response = await fetch(`${API_URL}/activity-usage/?username=${encodeURIComponent(username)}&limit=${encodeURIComponent(limit)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch activity usage');
+      }
+      return data; // { activity_usages, count, username }
+    } catch (err) {
+      console.error('Get activity usage error:', err);
+      throw err;
+    }
+  },
+};
+
+/**
  * Chatbot API calls
  */
 export const chatAPI = {
@@ -238,6 +314,8 @@ const api = {
   auth: authAPI,
   mood: moodAPI,
   chat: chatAPI,
+  activity: activityAPI,
+  journal: journalAPI,
 };
 
 export default api;

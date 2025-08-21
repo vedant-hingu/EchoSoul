@@ -6,10 +6,12 @@
   background: #fff;
   box-shadow: 0 2px 12px #0001;
   border-radius: 0 0 24px 24px;
-  margin-bottom: 2em;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
   transition: background 0.5s;
 }
 
