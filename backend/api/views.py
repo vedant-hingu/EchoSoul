@@ -12,7 +12,7 @@ from rest_framework.permissions import AllowAny
 import os
 
 from backend.mongo import MongoDB
-from .chatbot import generate_response, generate_t5_response
+from .chatbot import generate_gemini_response
 from .models import User
 from .utils import hash_password, verify_password
 
@@ -181,14 +181,13 @@ class ChatbotView(APIView):
                 except Exception as he:
                     logger.warning(f"Failed to load prior messages: {he}")
 
-            # Try Flan-T5 (Hugging Face) if enabled
+            # Try Google Gemini first (only provider)
             try:
-                t5_reply = generate_t5_response(user_message, mood, prior_messages)
-            except Exception as te:
-                logger.warning(f"T5 generation failed: {te}")
-                t5_reply = None
-            if t5_reply:
-                # Save chat exchange if username provided
+                gm_reply = generate_gemini_response(user_message, mood, prior_messages)
+            except Exception as ge:
+                logger.warning(f"Gemini generation failed: {ge}")
+                gm_reply = None
+            if gm_reply:
                 try:
                     if username:
                         db = MongoDB.get_db()
@@ -197,72 +196,15 @@ class ChatbotView(APIView):
                             'username': username,
                             'mood': mood,
                             'user_message': user_message,
-                            'bot_reply': t5_reply,
-                            'provider': 'flan-t5',
+                            'bot_reply': gm_reply,
+                            'provider': 'gemini',
                             'created_at': datetime.utcnow(),
                         })
                 except Exception as se:
-                    logger.warning(f"Failed to save chat message (t5): {se}")
-                return Response({'reply': t5_reply, 'mood': mood, 'provider': 'flan-t5'}, status=status.HTTP_200_OK)
-
-            # Optional OpenAI integration
-            api_key = os.environ.get('OPENAI_API_KEY')
-            model = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
-            if api_key:
-                try:
-                    # Lazy import to avoid hard dependency if key is not set
-                    from openai import OpenAI
-                    client = OpenAI(api_key=api_key)
-                    system_style = self._style_for_mood(mood)
-                    prompt = (
-                        "You are EchoSoul, a warm, human-like mental health companion.\n"
-                        f"Current mood: {mood}. Tone/style: {system_style}.\n"
-                        "Guidelines: \n"
-                        "- Happy: be cheerful and encouraging; celebrate wins; suggest ways to sustain positivity.\n"
-                        "- Sad: be gentle, empathetic, validating; offer kind reassurance and tiny steps.\n"
-                        "- Anxious: be soothing and grounding; suggest breathing/5-4-3-2-1; reduce stress.\n"
-                        "- Calm: match their peaceful tone; encourage mindfulness and reflection.\n"
-                        "- Angry: be patient and non-judgmental; help de-escalate and channel constructively.\n"
-                        "Always: leave them feeling better, be supportive and motivational; avoid clinical advice/diagnosis; stay consistent with the chosen mood; be concise (2–4 short sentences)."
-                    )
-                    msgs = [{"role": "system", "content": prompt}]
-                    if prior_messages:
-                        msgs.extend(prior_messages[-10:])  # trim just in case
-                    msgs.append({"role": "user", "content": user_message})
-
-                    completion = client.chat.completions.create(
-                        model=model,
-                        messages=msgs,
-                        temperature=0.8,
-                        max_tokens=220,
-                    )
-                    reply = completion.choices[0].message.content.strip()
-                    # Save chat exchange if username provided
-                    try:
-                        if username:
-                            db = MongoDB.get_db()
-                            chats = db['chat_messages']
-                            chats.insert_one({
-                                'username': username,
-                                'mood': mood,
-                                'user_message': user_message,
-                                'bot_reply': reply,
-                                'provider': 'openai',
-                                'created_at': datetime.utcnow(),
-                            })
-                    except Exception as se:
-                        logger.warning(f"Failed to save chat message: {se}")
-                    return Response({
-                        'reply': reply,
-                        'mood': mood,
-                        'provider': 'openai',
-                    }, status=status.HTTP_200_OK)
-                except Exception as e:
-                    logger.warning(f"OpenAI failed, falling back to rule-based: {e}")
-
-            # Fallback: ML-adjusted mood-aligned response
-            reply = generate_response(user_message, mood)
-            # Save chat exchange if username provided
+                    logger.warning(f"Failed to save chat message (gemini): {se}")
+                return Response({'reply': gm_reply, 'mood': mood, 'provider': 'gemini'}, status=status.HTTP_200_OK)
+            # Final fallback: rule-based
+            rb_reply = self._rule_based_reply(mood, user_message, username)
             try:
                 if username:
                     db = MongoDB.get_db()
@@ -271,13 +213,13 @@ class ChatbotView(APIView):
                         'username': username,
                         'mood': mood,
                         'user_message': user_message,
-                        'bot_reply': reply,
-                        'provider': 'fallback',
+                        'bot_reply': rb_reply,
+                        'provider': 'rule-fallback',
                         'created_at': datetime.utcnow(),
                     })
             except Exception as se:
-                logger.warning(f"Failed to save chat message: {se}")
-            return Response({'reply': reply, 'mood': mood, 'provider': 'fallback'}, status=status.HTTP_200_OK)
+                logger.warning(f"Failed to save chat message (rule): {se}")
+            return Response({'reply': rb_reply, 'mood': mood, 'provider': 'rule-fallback'}, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Chatbot error: {e}")
             return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
