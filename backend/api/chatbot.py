@@ -64,6 +64,7 @@ def generate_gemini_response(user_message: str, mood: str, history: List[Dict[st
         )
         resp = chat.send_message(user_message or '', generation_config=cfg)
         text = (resp.text or '').strip()
+        print("chatbot working")
         return text if text else None
     except Exception:
         return None
