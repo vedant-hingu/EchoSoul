@@ -1,7 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Tuple
+from typing import Tuple, List, Dict, Any
+import os
 
 # Try importing scikit-learn. If unavailable, fall back gracefully.
 try:
@@ -138,6 +139,19 @@ def _base_for_mood(mood: str) -> Tuple[str, str, str]:
     )
 
 
+def _closing_for_mood(mood: str) -> str:
+    m = (mood or "calm").lower()
+    if m == "happy":
+        return "Keep that spark alive—I'm cheering for you."
+    if m == "sad":
+        return "You matter, and I'm here with you."
+    if m == "anxious":
+        return "You're safe here—one steady breath at a time."
+    if m == "angry":
+        return "You're not alone—we can channel this into constructive next steps."
+    return "I'm here for you, at your pace."
+
+
 def _polish(base: Tuple[str, str, str], tone: Tone, mood: str, user_message: str) -> str:
     a, b, c = base
     m = (mood or "calm").lower()
@@ -236,8 +250,10 @@ def _polish(base: Tuple[str, str, str], tone: Tone, mood: str, user_message: str
     else:
         add = NEU_TWEAKS.get(m, [""])[key % len(NEU_TWEAKS.get(m, [""]))]
 
-    sentences = [a, b, c + (" " + add if add else "")]
-    return " ".join(s.strip() for s in sentences if s)
+    sentences = [a, b, c + (" " + add if add else ""), _closing_for_mood(m)]
+    # Keep it concise: 2–4 short sentences
+    out = " ".join(s.strip() for s in sentences if s)
+    return out
 
 
 def generate_response(user_message: str, mood: str) -> str:
@@ -250,3 +266,76 @@ def generate_response(user_message: str, mood: str) -> str:
     tone = _analyze(user_message or "")
     base = _base_for_mood(mood_norm)
     return _polish(base, tone, mood_norm, user_message or "")
+
+
+# ---------------- Optional: Flan-T5 integration (Hugging Face) ---------------- #
+try:
+    from transformers import AutoTokenizer, AutoModelForSeq2SeqLM  # type: ignore
+    HF_AVAILABLE = True
+except Exception:
+    AutoTokenizer = None  # type: ignore
+    AutoModelForSeq2SeqLM = None  # type: ignore
+    HF_AVAILABLE = False
+
+
+@lru_cache(maxsize=1)
+def _t5_load():
+    """Lazy-load Flan-T5 model if enabled via env and transformers is available.
+    Requires a backend like PyTorch/TF/Flax installed. Will return None if unavailable.
+    """
+    use_t5 = str(os.environ.get('T5_ENABLED') or os.environ.get('HF_T5', '')).lower() in {'1','true','yes','on'}
+    model_name = os.environ.get('T5_MODEL', 'google/flan-t5-small')
+    if not (use_t5 and HF_AVAILABLE):
+        return None
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        return {'tokenizer': tokenizer, 'model': model, 'name': model_name}
+    except Exception:
+        return None
+
+
+def _build_t5_prompt(user_message: str, mood: str, history: List[Dict[str, Any]]) -> str:
+    mood = (mood or 'calm').lower()
+    guide = (
+        "You are EchoSoul, a warm, human-like mental health companion.\n"
+        f"Current mood: {mood}. Tone/style must align with this mood.\n"
+        "Guidelines: Happy=cheerful+encouraging; Sad=gentle+validating; Anxious=soothing+grounding; "
+        "Calm=reflective+mindful; Angry=patient+de-escalating.\n"
+        "Always be supportive, avoid clinical/diagnostic claims, be concise (2–4 short sentences).\n"
+    )
+    ctx_lines: List[str] = []
+    for turn in (history or [])[-8:]:  # limit context length
+        role = turn.get('role')
+        content = (turn.get('content') or '').strip()
+        if role and content:
+            ctx_lines.append(f"{role}: {content}")
+    context = "\n".join(ctx_lines)
+    closing = _closing_for_mood(mood)
+    return (
+        f"{guide}\n"
+        f"Conversation so far:\n{context}\n\n"
+        f"User: {user_message}\n"
+        f"Assistant (mood-aligned, concise, supportive, end with: '{closing}'):"
+    )
+
+
+def generate_t5_response(user_message: str, mood: str, history: List[Dict[str, Any]]) -> str | None:
+    """Generate a response using Flan-T5 if enabled and available; otherwise None."""
+    bundle = _t5_load()
+    if not bundle:
+        return None
+    tokenizer = bundle['tokenizer']
+    model = bundle['model']
+    prompt = _build_t5_prompt(user_message, mood, history or [])
+    try:
+        inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
+    except Exception:
+        # If PyTorch is missing, tokenizer may still work but model won't; bail out
+        return None
+    try:
+        outputs = model.generate(**inputs, max_new_tokens=140, temperature=0.8, do_sample=True, top_p=0.9)
+        text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return text.strip()
+    except Exception:
+        return None

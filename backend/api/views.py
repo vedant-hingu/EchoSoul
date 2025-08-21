@@ -12,7 +12,7 @@ from rest_framework.permissions import AllowAny
 import os
 
 from backend.mongo import MongoDB
-from .chatbot import generate_response
+from .chatbot import generate_response, generate_t5_response
 from .models import User
 from .utils import hash_password, verify_password
 
@@ -156,11 +156,54 @@ class ChatbotView(APIView):
         try:
             data = request.data
             user_message = (data.get('message') or '').strip()
-            mood = (data.get('mood') or 'neutral').strip().lower()
+            mood = (data.get('mood') or 'calm').strip().lower()
             username = data.get('username')
 
             if not user_message:
                 return Response({'error': 'message is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Prepare recent conversation context (best-effort)
+            prior_messages = []
+            if username:
+                try:
+                    db = MongoDB.get_db()
+                    chats = db['chat_messages']
+                    # fetch last 6 exchanges (approx 12 turns)
+                    cursor = chats.find({'username': username}).sort('created_at', -1).limit(12)
+                    history = list(cursor)[::-1]  # chronological
+                    for h in history:
+                        um = (h.get('user_message') or '').strip()
+                        br = (h.get('bot_reply') or '').strip()
+                        if um:
+                            prior_messages.append({"role": "user", "content": um})
+                        if br:
+                            prior_messages.append({"role": "assistant", "content": br})
+                except Exception as he:
+                    logger.warning(f"Failed to load prior messages: {he}")
+
+            # Try Flan-T5 (Hugging Face) if enabled
+            try:
+                t5_reply = generate_t5_response(user_message, mood, prior_messages)
+            except Exception as te:
+                logger.warning(f"T5 generation failed: {te}")
+                t5_reply = None
+            if t5_reply:
+                # Save chat exchange if username provided
+                try:
+                    if username:
+                        db = MongoDB.get_db()
+                        chats = db['chat_messages']
+                        chats.insert_one({
+                            'username': username,
+                            'mood': mood,
+                            'user_message': user_message,
+                            'bot_reply': t5_reply,
+                            'provider': 'flan-t5',
+                            'created_at': datetime.utcnow(),
+                        })
+                except Exception as se:
+                    logger.warning(f"Failed to save chat message (t5): {se}")
+                return Response({'reply': t5_reply, 'mood': mood, 'provider': 'flan-t5'}, status=status.HTTP_200_OK)
 
             # Optional OpenAI integration
             api_key = os.environ.get('OPENAI_API_KEY')
@@ -171,13 +214,25 @@ class ChatbotView(APIView):
                     from openai import OpenAI
                     client = OpenAI(api_key=api_key)
                     system_style = self._style_for_mood(mood)
-                    prompt = f"You are EchoSoul, a supportive mental health companion. Adapt your tone and guidance to the user's mood.\nCurrent mood: {mood}.\nTone and style: {system_style}.\nRespond concisely (2-4 sentences). Avoid medical claims."
+                    prompt = (
+                        "You are EchoSoul, a warm, human-like mental health companion.\n"
+                        f"Current mood: {mood}. Tone/style: {system_style}.\n"
+                        "Guidelines: \n"
+                        "- Happy: be cheerful and encouraging; celebrate wins; suggest ways to sustain positivity.\n"
+                        "- Sad: be gentle, empathetic, validating; offer kind reassurance and tiny steps.\n"
+                        "- Anxious: be soothing and grounding; suggest breathing/5-4-3-2-1; reduce stress.\n"
+                        "- Calm: match their peaceful tone; encourage mindfulness and reflection.\n"
+                        "- Angry: be patient and non-judgmental; help de-escalate and channel constructively.\n"
+                        "Always: leave them feeling better, be supportive and motivational; avoid clinical advice/diagnosis; stay consistent with the chosen mood; be concise (2–4 short sentences)."
+                    )
+                    msgs = [{"role": "system", "content": prompt}]
+                    if prior_messages:
+                        msgs.extend(prior_messages[-10:])  # trim just in case
+                    msgs.append({"role": "user", "content": user_message})
+
                     completion = client.chat.completions.create(
                         model=model,
-                        messages=[
-                            {"role": "system", "content": prompt},
-                            {"role": "user", "content": user_message},
-                        ],
+                        messages=msgs,
                         temperature=0.8,
                         max_tokens=220,
                     )
