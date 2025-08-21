@@ -17,7 +17,7 @@ from .models import User
 from .utils import hash_password, verify_password
 
 logger = logging.getLogger(__name__)
-
+print("views.py")
 @method_decorator(csrf_exempt, name='dispatch')
 class SignupView(APIView):
     permission_classes = [AllowAny]
